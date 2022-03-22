@@ -1,5 +1,16 @@
 k8s-tutorial
 ===============
+
+개요
+---
+[TechWorld with Nana](https://www.youtube.com/c/TechWorldwithNana)
+
+[That Devops Guy](https://www.youtube.com/c/MarcelDempers)
+
+잘 정리된 인터넷 자료나 책을 참고해서 쿠버네티스 기초를 학습하기 위한 따라하기 자료를 만들어 봅시다.
+
+목차
+---
 #### Basic
 * [Local k8s tool]()
   - minikube
