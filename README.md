@@ -12,7 +12,7 @@ k8s-tutorial
 목차
 ---
 #### Basic
-* [Local k8s tool](./local_k8s/readme.md)
+* [Local k8s tool](./local_k8s)
   - minikube
   - kind
   - docker desktop
