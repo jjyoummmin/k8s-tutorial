@@ -64,9 +64,9 @@ kind delete cluster --name {cluster name}
 kind는 cluster 노드로 Docker Container를 사용합니다.  
 minikube, docker-desktop과의 가장 큰 차이점은 
 - docker를 사용하기 때문에 가상화 드라이버로 virtual machine을 사용하는 경우보다 훨씬 빠르다.   
-(이 이유로 linux에서는 kind가 훨씬 빠르지만, mac이나 window에서는 속도 차이가 별로 없다고 합니다.) 
+이 이유로 linux에서는 kind가 훨씬 빠르지만, mac이나 window에서는 속도 차이가 별로 없다고 합니다.
 - config file을 사용해서 클러스터를 커스텀하게 구성할 수 있기 때문에 로컬에서도 multi-node 클러스터를 구성하고 테스트해 볼 수 있다는 장점이 있다.   
-(minikube, docker-desktop은 1 node cluster.)
+minikube, docker-desktop은 1 node cluster.
 
 ```
 kind create cluster --config multi-node.yaml
@@ -159,7 +159,7 @@ kubectl exec -it {pod name} --bin/bash
 kubeconfig file
 ---------------  
 default path : `$HOME/.kube/config`  
-lusters, users, namespaces, and authentication mechanisms에 대한 정보를 관리하기 위해 사용하는 config 파일.  
+clusters, users, namespaces, and authentication mechanisms에 대한 정보를 관리하기 위해 사용하는 config 파일.  
 kubectl command-line 툴은 명령의 대상이 될 current cluster를 선택하고, 해당 클러스터의 API 서버와 통신하기 위한 정보를 찾기위해 kubeconfig file을 사용합니다.  
 기본적으로 kubectl은 `$HOME/.kube` 디렉토리에서 config 파일을 찾지만,
 `KUBECONFIG` 환경변수나 `--kubeconfig` flag 세팅을 통해 다른 config 파일을 사용하도록 할 수도 있습니다.
