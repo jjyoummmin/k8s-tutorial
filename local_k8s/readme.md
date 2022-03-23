@@ -119,6 +119,14 @@ common use case of kubectl
 
 [kubectl cheatsheet](https://kubernetes.io/docs/reference/kubectl/cheatsheet/)
 
+#### 클러스터 선택하기
+```
+kubectl config get-contexts
+kubectl config current-contexts
+kubectl config use-contexts {context name}
+kubectl config rename-context {old-name} {new-name} 
+```
+
 #### 클러스터에 resource 생성, 변경, 삭제하기
 ```
 # CRUD
