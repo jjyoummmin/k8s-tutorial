@@ -167,7 +167,15 @@ kubectl exec -it {pod name} --bin/bash
 kubeconfig file
 ---------------  
 default path : `$HOME/.kube/config`  
+
 clusters, users, namespaces, and authentication mechanisms에 대한 정보를 관리하기 위해 사용하는 config 파일.  
+```
+cluster = https endpoint of API Server (Control Plane)
+user = credential
+context = cluster + user
+```
 kubectl command-line 툴은 명령의 대상이 될 current cluster를 선택하고, 해당 클러스터의 API 서버와 통신하기 위한 정보를 찾기위해 kubeconfig file을 사용합니다.  
+
 기본적으로 kubectl은 `$HOME/.kube` 디렉토리에서 config 파일을 찾지만,
 `KUBECONFIG` 환경변수나 `--kubeconfig` flag 세팅을 통해 다른 config 파일을 사용하도록 할 수도 있습니다.
+
