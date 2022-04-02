@@ -7,7 +7,8 @@ k8s-tutorial
 [That Devops Guy](https://www.youtube.com/c/MarcelDempers)  
 [Devops Toolkit](https://www.youtube.com/c/DevOpsToolkit)  
 
-잘 정리된 인터넷 자료나 책을 참고해서 쿠버네티스 기초를 학습하기 위한 따라하기 자료를 만들어 봅시다. ⛴
+`container orchestration tool`  
+잘 정리된 인터넷 자료나 책을 참고해서 쿠버네티스 기초를 학습하기 위한 따라하기 자료를 만들어 봅시다. ⛴  
 
 목차
 ---
