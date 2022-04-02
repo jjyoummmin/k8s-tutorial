@@ -32,7 +32,7 @@ API Server <-> container runtime 사이에서 통신하면서 pod가 잘 동작�
 probe - readiness, liveness, startup. kubelet에 의해서 주기적으로 실행되는 pod 진단 
 
 #### kube-proxy
-network proxy. 쿠버네티스 "Service" 개념을 구현하는 요소 중 하나입니다.  
+network proxy.
 maintain network rule on node, forwarding requests.  
 
 master node
