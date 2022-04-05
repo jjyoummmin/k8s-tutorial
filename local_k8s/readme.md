@@ -28,7 +28,7 @@ minikube delete
 ```
 
 (참고)  
-mac 기준 default는 docker이지만, 다른 가상화 드라이버를 사용해서 minikube 클러스터를 띄우고 싶다면  
+다른 가상화 드라이버를 사용해서 minikube 클러스터를 띄우고 싶다면  
 [minikube drivers](https://minikube.sigs.k8s.io/docs/drivers/)
 ```
 minikube start --driver={driver name} --profile
@@ -179,3 +179,14 @@ kubectl command-line 툴은 명령의 대상이 될 current cluster를 선택하
 기본적으로 kubectl은 `$HOME/.kube` 디렉토리에서 config 파일을 찾지만,
 `KUBECONFIG` 환경변수나 `--kubeconfig` flag 세팅을 통해 다른 config 파일을 사용하도록 할 수도 있습니다.
 
+#### kubeconfig 삭제
+```
+# 삭제
+kubectl config unset users.docker-desktop
+kubectl config unset contexts.docker-desktop
+kubectl config unset clusters.docker-desktop
+
+# 확인
+kubectl config view
+kubectl config get-contexts
+```

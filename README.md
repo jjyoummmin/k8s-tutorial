@@ -18,7 +18,7 @@ k8s-tutorial
   - kind
   - docker desktop
 * [Basic architecture](./basic_architecture)
-* [Deployment]()
+* [Deployment](./deployment)
 * [ConfigMap / Secrets]()
 * [Namespaces]()
 * [Service / Ingress]()

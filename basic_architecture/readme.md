@@ -43,9 +43,12 @@ control plane 역할을 하는 노드
 
 #### API Server
 cluster로의 유일한 entry point. 심지어 worker node도 API Server를 통해 마스터와 통신합니다.  
-API Server와 통신하기 위한 여러 client (ui, cli=kubectl, api)가 있는데 그 중 kubectl이 가장 강력한 기능을 제공합니다.  
+
+API Server와 통신하기 위한 여러 client (ui, cli=kubectl, api)가 있는데 그 중 kubectl이 가장 강력한 기능을 제공합니다. 
+
 cluster로의 요청에 대한 인증/인가를 위한 gatekeeper로서의 역할을 담당하기도 합니다.  
 some request -> (expose 443 Port) API Server -> validate request -> forward to other process  
+
 horizontally scale out 될 수 있게 설계되어서 트래픽이 여러 api-server 서버로 로드밸런싱 됩니다.
 
 #### Scheduler
