@@ -22,6 +22,7 @@ k8s-tutorial
 * [ConfigMap / Secrets]()
 * [Namespaces]()
 * [Service / Ingress]()
+* [Job / CronJob](./job)
 
 #### Intermediate
 * [Service Mesh / API Gateway]()
