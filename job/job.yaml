@@ -1,0 +1,15 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: hello
+spec:
+  completions: 2   # 실행 횟수
+  parallelism: 2   # 병렬으로 실행할 개수
+  template:   
+    spec:
+      containers:
+      - name: alpine
+        image: alpine:latest
+        command: ["echo",  "hello world!!"]
+      restartPolicy: Never
+  backoffLimit: 4
