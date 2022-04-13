@@ -127,4 +127,5 @@ pod 업데이트 strategy를 `RollingUpdate`로 했을 경우 다음과 같이 �
 
 ![zero-downtime-update](../image/zero-downtime-update.jpeg)
 
-이렇게 pod 한개씩 차례로 update 됩니다. termination Grace period 동안은 더이상 새로운 트래픽은 전달되지 않도록 끊은 뒤, 이미 받은 request를 처리 할 동안은 pod를 살려두는 시간입니다. 
+이렇게 pod 한개씩 차례로 update 됩니다.   
+termination Grace period 동안은 더이상 새로운 트래픽은 전달되지 않도록 끊은 뒤, 이미 받은 request를 처리 할 동안은 pod를 살려두는 시간입니다. 

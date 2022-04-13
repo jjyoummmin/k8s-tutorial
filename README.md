@@ -19,7 +19,7 @@ k8s-tutorial
   - docker desktop
 * [Basic architecture](./basic_architecture)
 * [Deployment](./deployment)
-* [ConfigMap / Secrets]()
+* [ConfigMap / Secrets](./configmap_secrets)
 * [Namespaces]()
 * [Service / Ingress]()
 * [Job / CronJob](./job)

@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: hello
+  name: hello-world
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: hello
+  template:
+    metadata:
+      labels:
+        app: hello
+    spec:
+      containers:
+      - image: gcr.io/google-samples/node-hello:1.0
+        name: hello-world
+        ports:
+        - containerPort: 8080
+        env:
+        # 컨테이너 환경변수 바로 적기
+        - name: my_age
+          value: '100'
+        # configMap에서 가져온 값 사용하기
+        - name: my_name
+          valueFrom: 
+            configMapKeyRef:
+              name: hello-config
+              key: my_name 
+        - name: database
+          valueFrom:
+            configMapKeyRef:
+              name: hello-config
+              key: db_url
+        # secret 에서 가져온 값 사용하기
+        - name: password
+          valueFrom:
+            secretKeyRef:
+              name: hello-secret
+              key: db_password
+
