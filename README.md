@@ -20,7 +20,7 @@ k8s-tutorial
 * [Basic architecture](./basic_architecture)
 * [Deployment](./deployment)
 * [ConfigMap / Secrets](./configmap_secrets)
-* [Namespaces]()
+* [Namespaces](./namespace)
 * [Service / Ingress]()
 * [Job / CronJob](./job)
 
