@@ -25,9 +25,12 @@ k8s-tutorial
 * [Job / CronJob](./job)
 
 #### Intermediate
-* [Service Mesh / API Gateway]()
+* [API Gateway](./api_gateway)
+  - Kong
+  - Gloo Edge
+  - Zuul
+* [Service Mesh](./service_mesh)
   - Istio (chaos test, jwt)
-  - kong
 * [Auto scaling]()
 * [Helm]()
 * [StatefulSet / Volumes]()
