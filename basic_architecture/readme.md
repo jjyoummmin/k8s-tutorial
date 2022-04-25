@@ -87,4 +87,24 @@ Add-ons
 
 #### cni
 container network interface.  
-network를 위한 플러그인
+network를 위한 플러그인 입니다. 하나의 노드 내부의 네트워킹에 대한 일을 담당합니다.  
+
+새로운 pod가 생성되면 CNI가 하는일
+1. pod에 IP address 부여
+2. pod 내부의 컨테이너들을 네트워크에 추가사킴  
+   (veth 연결, 내부 라우팅 추가등을 담당..)
+
+CNI 구현체
+- Calico
+- Cillium
+- Flannel
+- Weave Net
+
+CNI가 없다면 다음과 같은 작업들을 모두 수동으로 수행해야 합니다.
+- 인터페이스 생성
+- veth pair 생성
+- networking namespace 세팅
+- static routing 세팅
+- ethernet bridge 설정
+- IP address 부여하기
+- NAT rule 생성하기

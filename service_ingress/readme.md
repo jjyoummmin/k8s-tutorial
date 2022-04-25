@@ -4,28 +4,21 @@ deployment를 통해 생성한 application pod에 클라이언트의 request를 
 또, application pod에서 redis pod로 요청을 보내고 싶을 때 IP 주소를 어떻게 찾을까요?   
 쿠버네티스의 네트워킹에 대해 알아봅시다.
 
-process가 아니라 abstract layer임. 
+서비스는 process가 아니라 abstract layer입니다.   
 모든 pod는 클러스터 내부 IP를 부여받습니다. 그렇지만 pod는 금방 죽기도 하고, Restart  되기도 하는 존재이기 때문에 (ephemeral), 해당 app의 pod들과 안정적으로 네트워킹 하기위한 고정적인 IP 주소가 필요합니다.  
-stable IP address를 가진 서비스로 전달된 트래픽은 여러개의 pod로 로드밸런싱 됩니다.  
+또한 stable IP address를 가진 서비스로 전달된 트래픽은 여러개의 pod로 로드밸런싱 됩니다.    
+각 pod를 개별적으로 호출하는 대신, 서비스를 호출 하면 request를 (기본적으로는 round-robin 방식으로) 연결된 pod로 포워딩 해주니까 클러스터 객체간의 느슨한 결합, 추상화로 관리하기 좋아지겠죠.
 
+> IP addresses assigned to pods are ephemeral and change every time a pod is created or deleted. Service provides a stable mechanism for connecting to a set of pods
 
-
-원리
- kube-proxy => manages  iptables on each worker node
-
- 1) dns registry : coreDNS
- - nslookup
- 2) iptables : kube-proxy
- -> 각 worker node의 iptable 보기?
-- iptables : handles nat netfilter entry
-- ifconfig
-- netstat -rn (라우팅 테이블)
-
+서비스에게 부여된 Virtual IP는 고정적이고 변하지 않습니다.
 
 service types
 -------------
 #### ClusterIP
-type 명시 안했을 때 default 타입.
+default 타입. 특별히 type을 명시하지 않았을 때 서비스타입은 ClusterIP 입니다.  
+오직 클러스터 내부에서만 접근 가능한 internal service 입니다.
+
  
 서비스가 어떤 pod, port에 forwarding 해야하는지 어떻게 알고 있을까? 
 - selector (member pod, endpoint pod )
@@ -93,9 +86,51 @@ GCP, AWS, Azure, linode, openstack 등등
 extension of clusterip type 
 
 
+원리
+---
+[kubernetes 네트워킹 원리](https://www.youtube.com/watch?v=xhva6DeKqVU&t=240s)  
+[심화 이해 : kubernetes 내부의 packet flow](https://learnk8s.io/kubernetes-network-packets)  
+
+
+
+ kube-proxy => manages  iptables on each worker node
+
+ 1) dns registry : coreDNS
+ - nslookup
+ 2) iptables : kube-proxy
+ -> 각 worker node의 iptable 보기?
+- iptables : handles nat netfilter entry
+- ifconfig
+- netstat -rn (라우팅 테이블)
+
+
+
+#### coredns vs kube-dns
+
+kube-dns -> coredns
+
+In a new 1.11 or 1.12 cluster, I'd expect to see service/kube-dns and apps.deployment/coredns, both in kube-system namespace. You should only see coredns pods, and no kube-dns pods.
+
+The reason for this is that kube-dns service is considered to be something that application depend on, so it remained unchanged when CoreDNS was introduced. It is by design.
+
+So even though the service name is called kube-dns, it is CoreDNS that is running, this was confusing me since I saw no pods for kube-dns but the service is still named kube-dns.
+
+```
+kubectl version
+
+kubectl get all --all-namespaces
+```
+1.23
+
+pod/core-dns
+service/kube-dns
+
+
+
+
 실습
 ---
-### 같은 클러스터 내에서 url로 서비스에 접근하기
+#### 같은 클러스터 내에서 url로 서비스에 접근하기
 `{protocol}{service}.{namespace}` 
 
 ![proxy-app](../image/proxy-app.jpeg) 
@@ -117,17 +152,16 @@ kubectl port-forward deployment/proxy-app 3000:3000
 
 
 
-create deployment
-create service
-- 종류별로
-
+#### service type 별로 생성해보기
 https://kubernetes.io/docs/tutorials/stateless-application/expose-external-ip-address/
 
-http://foo 이런식으로 접근해보기
-redis:://redis
 
+
+#### 원리 실습
 pod 안에서 nslookup
 https://kubernetes.io/docs/tasks/administer-cluster/dns-debugging-resolution/
+
+
 
 Ingress
 =======
@@ -213,22 +247,4 @@ default-http-backend라는 같은 이름으로 internal service를 하나 생성
 
 
 
-#### coredns vs kube-dns
 
-kube-dns -> coredns
-
-In a new 1.11 or 1.12 cluster, I'd expect to see service/kube-dns and apps.deployment/coredns, both in kube-system namespace. You should only see coredns pods, and no kube-dns pods.
-
-The reason for this is that kube-dns service is considered to be something that application depend on, so it remained unchanged when CoreDNS was introduced. It is by design.
-
-So even though the service name is called kube-dns, it is CoreDNS that is running, this was confusing me since I saw no pods for kube-dns but the service is still named kube-dns.
-
-```
-kubectl version
-
-kubectl get all --all-namespaces
-```
-1.23
-
-pod/core-dns
-service/kube-dns
