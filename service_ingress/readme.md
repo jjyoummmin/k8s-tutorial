@@ -92,7 +92,6 @@ extension of clusterip type
 [심화 이해 : kubernetes 내부의 packet flow](https://learnk8s.io/kubernetes-network-packets)  
 
 
-
  kube-proxy => manages  iptables on each worker node
 
  1) dns registry : coreDNS
