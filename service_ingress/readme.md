@@ -14,7 +14,7 @@ deployment를 통해 생성한 application pod에 클라이언트의 request를 
 
 service types
 -------------
-#### ClusterIP
+### ClusterIP
 default 타입. 특별히 type을 명시하지 않았을 때 서비스타입은 ClusterIP 입니다.  
 오직 클러스터 내부에서만 접근 가능한 internal service 입니다.
 
@@ -42,7 +42,7 @@ pod에 변동 생길때마다 dynamic하게 최신 상태 유지.
  
 
 
-#### Headless
+### Headless
 클라이언트/pod가 하나의 specific pod랑 direct 소통하고 싶을 때  
 
 use case
@@ -61,7 +61,7 @@ setting clusterIP : none
 
 일반적인 역할을 하는 ClusterIP 서비스를 두고, 직접 연결해야 하는 pod에 headless 서비스를 별도로 둔다. 
 
-#### NodePort
+### NodePort
 clusterip : only accessible within cluster
 no external traffic can directly  
 nodeport : 각 worker node의 고정된 port를 통해서 접근 가능 하다.  
@@ -74,7 +74,7 @@ nodeport : 각 worker node의 고정된 port를 통해서 접근 가능 하다.
 보안에 좋지 않음, 테스트를 위해서만 사용할 것.
 not for production 
 
-#### LoadBalancer
+### LoadBalancer
 nodeport 보다 나은 대안. 
 accessible externally through cloud providers loadbalancer
   
@@ -174,16 +174,19 @@ podA에서 보낸 패킷이 destination ip를 찾아가는 과정에서, (`netfi
 
 서비스를 create하거나 update하면 각 워커노드에서 돌아가고 있는 `kube-proxy`가 api-server를 통해 control plane의 변경사항을 지켜보다가, 리눅스의 iptables를 업데이트 시켜주는 것이라고 합니다!
 
-kube-proxy 모드도 세가지 정도 (`user space`, `iptables`, `IPVS`)가 존재하는데, iptables mode가 default인 것 같습니다.
+kube-proxy 모드도 세가지 정도 (`user space`, `iptables`, `IPVS`)가 존재하는데, iptables mode가 default인 것 같습니다.  
+[K8s: A Closer Look at Kube-Proxy](https://betterprogramming.pub/k8s-a-closer-look-at-kube-proxy-372c4e8b090)  
 
 ![kube-proxy iptables mode](../image/iptables_mode.png)
 
-리눅스를 구성하는 네트워크 componenet인 iptables, netfilters는
+리눅스를 구성하는 네트워크 component인 iptables, netfilters는
 > **netfilter** : implements firewall and routing capabilities within the kernel. configure packet filtering, create NAT or port translation rules, and manage the traffic flow in the network.
 
 > **iptables** : userspace interface to the linux kernel's netfilter system. configure the IP packet filter rules  
 
-이런거라고 하는데, 솔직히 잘 모르겠습니다. 다음을 기약하며 넘어가도록 하죠.
+이런거라고 하는데, 솔직히 잘 모르겠습니다. 다음을 기약하며 넘어가도록 하죠.  
+
+위의 첫번째 packet flow 이미지에서 같은 각 pod를 위한 리눅스 네트워크 네임스페이스 생성, veth, bridge 설정 같은 low level 네트워크 작업은 `CNI` 가 담당해주는 것 같습니다.
 
 아무튼 요약하자면, 각 워커노드의 kube-proxy가 서비스 변경사항을 지켜보고 있다가 그에 따라 리눅스 iptables를 업데이트 해두면, cluster 내부에서 packet이 destination으로 라우팅 되는 어떤 과정에서 netfilter hook에 걸려 `서비스 Virtual IP` -> `연결된 실제 pod IP` 로 패킷 destination이 수정된다는 것이 제가 이해한바 입니다.
 
