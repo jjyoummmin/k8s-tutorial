@@ -7,7 +7,7 @@ deployment를 통해 생성한 application pod에 클라이언트의 request를 
 서비스가 왜 필요할까요?  
 모든 pod는 클러스터 내부 IP를 부여받습니다. 그렇지만 pod는 금방 죽기도 하고, Restart  되기도 하는 존재이기 때문에 (ephemeral), 해당 app의 pod들과 안정적으로 네트워킹 하기위한 고정적인 IP 주소가 필요합니다.  
 **서비스에게 부여된 Virtual IP는 고정적이고 변하지 않습니다.**  
-또한 이런 stable IP address를 가진 서비스로 전달된 트래픽은 여러개의 pod로 로드밸런싱 됩니다.    
+또한 이런 stable IP address를 가진 서비스로 전달된 트래픽은 여러개의 pod로 **로드밸런싱** 됩니다.    
 각 pod를 개별적으로 호출하는 대신, 서비스를 호출 하면 request를 (기본적으로는 round-robin 방식으로) 연결된 pod로 포워딩 해줍니다.
 
 
@@ -91,9 +91,6 @@ extension of clusterip type
 ㄴ 클러스터 내부의 네트워킹에 대해 쉽고 자세하게 설명되어 있으니 꼭 한번 읽어보시길 추천드립니다 👍  
 [(참고) linux network namespace](https://www.youtube.com/watch?v=j_UUnlVC2Ss)  
 
-![packet flow](../image/packet_flow.png)
-![service principle](../image/service_principle.jpeg)
-
 서비스는 실질적인 process가 아니라 abstract layer입니다.   
 (밑에서 설명하겠지만 kube-proxy에 의해 각 worker node의 iptables 룰이 업데이트 되는 것입니다.)  
 
@@ -132,7 +129,7 @@ kubelet을 통해서 각 컨테이너가 DNS resolution에 위의 DNS 서비스,
 ```
 kubectl get svc kube-dns -n kube-system
 ```
-![dns svc IP address](../image/kube_dns_ip.png)
+![dns svc IP address](../image/kube_dns_ip.png)  
 부여된 Cluster IP는 `10.96.0.10` 이네요.
 
 실습을 위해  클러스터에 샘플 deployment와 service를 생성합시다.
@@ -146,7 +143,7 @@ kubectl exec -it <pod> -- bash
 
 cat /etc/resolv.conf
 ```
-![resolv.conf](../image/resolv.conf.png)
+![resolv.conf](../image/resolv.conf.png)  
 좀전에 확인한 `10.96.0.10` 가 네임서버로 지정되어 있는 것을 확인할 수 있습니다.
 > resolv.conf is the name of a computer file used in various operating systems to configure the system's Domain Name System (DNS) resolver.
 
@@ -168,17 +165,27 @@ nslookup hello-world
 kubectl을 통해서 확인한 hello-world 서비스의 ip 주소와 pod 내부에서 네임서버를 통해 resolve한 hello-world 서비스의 ip 주소도 모두 `10.107.162.97`로 동일한 것을 확인할 수 있습니다.
 
 
+### 2) netfilters / iptables
 
- 2) netfilters / iptables : kube-proxy
-kube-proxy => manages  iptables on each worker node
- virtual IP -> 실제 Pod IP
- -> 각 worker node의 iptable 보기?
-- iptables : handles nat netfilter entry
-- ifconfig
-- netstat -rn (라우팅 테이블)
+podA에서 보낸 패킷이 destination ip를 찾아가는 과정에서, (`netfilter` hook이 trigger 되어 `iptables` 필터링을 통해..) 패킷의 destination이 서비스의 virtual IP `172.30.0.1` 에서 서비스에 endpoint로 연결된 pod들 중 하나의 cluster ip로 바뀌게 됩니다. 
+
+![packet flow](../image/packet_flow.png)
+![service principle](../image/service_principle.jpeg)
+
+서비스를 create하거나 update하면 각 워커노드에서 돌아가고 있는 `kube-proxy`가 api-server를 통해 control plane의 변경사항을 지켜보다가, 리눅스의 iptables를 업데이트 시켜주는 것이라고 합니다!
+
+kube-proxy 모드도 세가지 정도 (`user space`, `iptables`, `IPVS`)가 존재하는데, iptables mode가 default인 것 같습니다.
 
 ![kube-proxy iptables mode](../image/iptables_mode.png)
 
+리눅스를 구성하는 네트워크 componenet인 iptables, netfilters는
+> **netfilter** : implements firewall and routing capabilities within the kernel. configure packet filtering, create NAT or port translation rules, and manage the traffic flow in the network.
+
+> **iptables** : userspace interface to the linux kernel's netfilter system. configure the IP packet filter rules  
+
+이런거라고 하는데, 솔직히 잘 모르겠습니다. 다음을 기약하며 넘어가도록 하죠.
+
+아무튼 요약하자면, 각 워커노드의 kube-proxy가 서비스 변경사항을 지켜보고 있다가 그에 따라 리눅스 iptables를 업데이트 해두면, cluster 내부에서 packet이 destination으로 라우팅 되는 어떤 과정에서 netfilter hook에 걸려 `서비스 Virtual IP` -> `연결된 실제 pod IP` 로 패킷 destination이 수정된다는 것이 제가 이해한바 입니다.
 
 
 실습
