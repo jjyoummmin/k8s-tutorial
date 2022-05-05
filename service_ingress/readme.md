@@ -4,14 +4,13 @@ deployment를 통해 생성한 application pod에 클라이언트의 request를 
 또, application pod에서 redis pod로 요청을 보내고 싶을 때 IP 주소를 어떻게 찾을까요?   
 쿠버네티스의 네트워킹에 대해 알아봅시다.
 
-서비스는 process가 아니라 abstract layer입니다.   
+서비스가 왜 필요할까요?  
 모든 pod는 클러스터 내부 IP를 부여받습니다. 그렇지만 pod는 금방 죽기도 하고, Restart  되기도 하는 존재이기 때문에 (ephemeral), 해당 app의 pod들과 안정적으로 네트워킹 하기위한 고정적인 IP 주소가 필요합니다.  
-또한 stable IP address를 가진 서비스로 전달된 트래픽은 여러개의 pod로 로드밸런싱 됩니다.    
-각 pod를 개별적으로 호출하는 대신, 서비스를 호출 하면 request를 (기본적으로는 round-robin 방식으로) 연결된 pod로 포워딩 해주니까 클러스터 객체간의 느슨한 결합, 추상화로 관리하기 좋아지겠죠.
+**서비스에게 부여된 Virtual IP는 고정적이고 변하지 않습니다.**  
+또한 이런 stable IP address를 가진 서비스로 전달된 트래픽은 여러개의 pod로 로드밸런싱 됩니다.    
+각 pod를 개별적으로 호출하는 대신, 서비스를 호출 하면 request를 (기본적으로는 round-robin 방식으로) 연결된 pod로 포워딩 해줍니다.
 
-> IP addresses assigned to pods are ephemeral and change every time a pod is created or deleted. Service provides a stable mechanism for connecting to a set of pods
 
-서비스에게 부여된 Virtual IP는 고정적이고 변하지 않습니다.
 
 service types
 -------------
@@ -88,42 +87,97 @@ extension of clusterip type
 
 원리
 ---
-[kubernetes 네트워킹 원리](https://www.youtube.com/watch?v=xhva6DeKqVU&t=240s)  
 [심화 이해 : kubernetes 내부의 packet flow](https://learnk8s.io/kubernetes-network-packets)  
+ㄴ 클러스터 내부의 네트워킹에 대해 쉽고 자세하게 설명되어 있으니 꼭 한번 읽어보시길 추천드립니다 👍  
+[(참고) linux network namespace](https://www.youtube.com/watch?v=j_UUnlVC2Ss)  
+
+![packet flow](../image/packet_flow.png)
+![service principle](../image/service_principle.jpeg)
+
+서비스는 실질적인 process가 아니라 abstract layer입니다.   
+(밑에서 설명하겠지만 kube-proxy에 의해 각 worker node의 iptables 룰이 업데이트 되는 것입니다.)  
+
+클러스터 내부의 pod-A 에서 서비스 url `http://foo` 를 호출했을 때, 패킷 전달 과정을 살펴볼까요?
+
+### 1) DNS 조회
+`http://foo` 를 서비스의 virtual IP인 `172.30.0.1` (예를 들자면)로 바꿉니다. 
+
+```
+minikube start
+
+kubectl get all --all-namespaces
+```
+![coredns](../image/coredns.png)
+
+아직 아무것도 생성하지 않은 기본 minikube 클러스터를 확인해보면, coredns 서비스, deployment, replicaset 그리고 pod이 돌고 있는 것을 확인할 수 있습니다.  
+[dns for services and pods](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/)  
+
+쿠버네티스는 클러스터 내에 DNS pod과 서비스를 운영하고 (kube-system 네임스페이스에),   
+kubelet을 통해서 각 컨테이너가 DNS resolution에 위의 DNS 서비스, pod를 이용할 수 있도록 합니다. (DNS 서비스 IP 주소를 통해 DNS pod에 접근..)  
+모든 쿠버네티스 서비스는 이 DNS pod에 레코드 생성이 되어있으므로, client pod가 서비스의 Virtual IP 대신 DNS name으로 호출할 수 있습니다.  
+
+(참고) coredns vs kube-dns
+
+쿠버네티스에서 DNS라는 키워드로 검색하다보면 kube-dns와 coreDNS 라는 2가지가 검색되었는데요, k8s version 1.11, 1.12 이후 부터 kube-dns에서 coreDNS로 세대교체가 된듯 합니다.   
+단, 기존 application들의 dependency 때문에 coreDNS 도입 이후에도, DNS 서비스의 명칭만은 kube-dns로 남겨둔 듯 합니다.
+
+[Why are both Kube-DNS and CoreDNS installed by default?](https://github.com/weaveworks/eksctl/issues/891)  
+[Cluster DNS: CoreDNS vs Kube-DNS](https://coredns.io/2018/11/27/cluster-dns-coredns-vs-kube-dns/#:~:text=CoreDNS%20is%20a%20single%20container,caching%20in%20the%20default%20deployment.)  
+
+#### DNS 관련 실습
+[Hands-On Kubernetes - CoreDNS & DNS Resolution](https://www.youtube.com/watch?v=OKnOc4I-7sA)  
+[Debugging DNS Resolution](https://kubernetes.io/docs/tasks/administer-cluster/dns-debugging-resolution/) 
+
+먼저 DNS 서비스 IP를 확인해볼까요?
+```
+kubectl get svc kube-dns -n kube-system
+```
+![dns svc IP address](../image/kube_dns_ip.png)
+부여된 Cluster IP는 `10.96.0.10` 이네요.
+
+실습을 위해  클러스터에 샘플 deployment와 service를 생성합시다.
+```
+kubectl apply -f deployment/deployment.yaml
+kubectl expose deployment hello-world
+```
+이제 동작하고 있는 pod 중 하나의 shell에 접속해서 다음 명령어를 쳐보세요.
+```
+kubectl exec -it <pod> -- bash
+
+cat /etc/resolv.conf
+```
+![resolv.conf](../image/resolv.conf.png)
+좀전에 확인한 `10.96.0.10` 가 네임서버로 지정되어 있는 것을 확인할 수 있습니다.
+> resolv.conf is the name of a computer file used in various operating systems to configure the system's Domain Name System (DNS) resolver.
+
+```
+curl http://hello-world:8080
+```
+![call_service](../image/call_service.png)
+해당 pod에서 서비스 url로 (ip address 대신 서비스의 DNS name) curl command 를 쳐도 당연하게도 정상적인 response를 받을 수도 있습니다.
+
+```
+apt update
+apt-get update dnsutils
+
+nslookup hello-world
+```
+![nslookup](../image/nslookup.png)
+![nslookup](../image/nslookup2.png)
+
+kubectl을 통해서 확인한 hello-world 서비스의 ip 주소와 pod 내부에서 네임서버를 통해 resolve한 hello-world 서비스의 ip 주소도 모두 `10.107.162.97`로 동일한 것을 확인할 수 있습니다.
 
 
- kube-proxy => manages  iptables on each worker node
 
- 1) dns registry : coreDNS
- - nslookup
- 2) iptables : kube-proxy
+ 2) netfilters / iptables : kube-proxy
+kube-proxy => manages  iptables on each worker node
+ virtual IP -> 실제 Pod IP
  -> 각 worker node의 iptable 보기?
 - iptables : handles nat netfilter entry
 - ifconfig
 - netstat -rn (라우팅 테이블)
 
-
-
-#### coredns vs kube-dns
-
-kube-dns -> coredns
-
-In a new 1.11 or 1.12 cluster, I'd expect to see service/kube-dns and apps.deployment/coredns, both in kube-system namespace. You should only see coredns pods, and no kube-dns pods.
-
-The reason for this is that kube-dns service is considered to be something that application depend on, so it remained unchanged when CoreDNS was introduced. It is by design.
-
-So even though the service name is called kube-dns, it is CoreDNS that is running, this was confusing me since I saw no pods for kube-dns but the service is still named kube-dns.
-
-```
-kubectl version
-
-kubectl get all --all-namespaces
-```
-1.23
-
-pod/core-dns
-service/kube-dns
-
+![kube-proxy iptables mode](../image/iptables_mode.png)
 
 
 

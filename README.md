@@ -21,7 +21,7 @@ k8s-tutorial
 * [Deployment](./deployment)
 * [ConfigMap / Secrets](./configmap_secrets)
 * [Namespaces](./namespace)
-* [Service / Ingress](./service_ingress)
+* [Service / Ingress](./service_ingress) 😎
 * [Job / CronJob](./job)
 
 #### Intermediate
