@@ -16,12 +16,12 @@ service types
 -------------
 ### ClusterIP
 default 타입. 특별히 type을 명시하지 않았을 때 서비스타입은 ClusterIP 입니다.  
-오직 클러스터 내부에서만 접근 가능한 internal service 입니다.
+**오직 클러스터 내부에서만 접근 가능한 internal service** 입니다.
+서비스에 변하지 않는 virtual IP 주소가 부여됩니다.
 
- 
-서비스가 어떤 pod, port에 forwarding 해야하는지 어떻게 알고 있을까? 
-- selector (member pod, endpoint pod )
-- targetport
+ 서비스가 어떤 pod, port로 forwarding 해야하는지 어떻게 지정해줄까요?
+- selector : service selector와 label이 일치하는 pod를 찾습니다.
+- targetport : 서비스 targetPort == pod port
 
 ```yaml
 ports:
@@ -30,60 +30,67 @@ ports:
   targetPort: 3200   # has to match containerPort!
 ```
 
-multiport service  
-port 명세에 이름 부여할 것
+#### multiport service  
+port 명세에 이름 부여하면 multiport 서비스를 운영할 수 있습니다.
 
-서비스를 생성하면 서비스는 endpoint object를 생성함. 서비스와 같은 이름인
+서비스를 생성하면 서비스와 같은 이름인 endpoint object를 생성됩니다. dynamic하게 endpoint ip 최산 상태를 계속 트레킹 합니다. (연결된 `{pod ip}:{port}` 리스트)
 ```
 kubectl get endpoints
 ```
-keeptrack of which pods are members/endpoints of service
-pod에 변동 생길때마다 dynamic하게 최신 상태 유지. 
- 
 
+ ### Headless
+클라이언트/pod가 하나의 specific pod랑 direct로 소통하고 싶을 때 사용합니다.  
+예를 들면 master/slave db 컨테이너와 같이 서로 구별되어야 하는 stateful pod인 경우입니다. 
 
-### Headless
-클라이언트/pod가 하나의 specific pod랑 direct 소통하고 싶을 때  
+서비스 yaml에서 `.spec.clusterIP` 를 None으로 지정하면 headless 서비스가 됩니다.
+이 경우 서비스 DNS 네임을 resolve할 때 서비스의 virtual IP가 아닌 연결된 endpoint IP를 바로 리턴합니다.  
+클러스터 DNS에 관해서는 아래에서 더 자세히 설명하고 있으니 참고해주세요.  
 
-use case
-- stateful application like databases. pod replicas are not identical / worker-master
-
-
-
-해당 pod ip address를 얻는 방법
-1) k8s api server에 api call
-- 비효율적, app이 k8s api에 강결합되게 되서 별로 좋지 않음
-2) DNS lookup
-- 기본적으로는 서비스의 clusterIP를 되돌려주지만 headless로 지정하면 pod의 IP 리턴함.
-
-
-setting clusterIP : none
-
-일반적인 역할을 하는 ClusterIP 서비스를 두고, 직접 연결해야 하는 pod에 headless 서비스를 별도로 둔다. 
+보통 일반적인 역할을 하는 ClusterIP 서비스를 두고, 직접 연결해야 하는 pod에 headless 서비스를 별도로 두는 식으로 운영한다고 하네요.
 
 ### NodePort
-clusterip : only accessible within cluster
-no external traffic can directly  
-nodeport : 각 worker node의 고정된 port를 통해서 접근 가능 하다.  
+ClusterIP 타입은 오직 클러스터 내부에서만 접근 가능합니다.  
+NodePort와 LoadBalancer 서비스는 외부 트래픽을 직접 받을 수 있게하기 위한 **external service** 입니다.  
 
-해당 포트번호는 nodeport attribute에 명시
-30000 - 32767 사이의 값이어야함. 
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-service
+spec:
+  type: NodePort
+  selector:
+    app: MyApp
+  ports:
+    - port: 80
+      targetPort: 80
+      nodePort: 30007
+```
 
-이 타입의 서비스를 생성하면 모든 worker 노드의 노드포트가 오픈됨.
+nodeport는 각 worker node의 고정된 port를 통해서 접근 가능 합니다.  
+nodePort는 30000 - 32767 사이의 값이어야 합니다. 지정하지 않으면 쿠버네티스에서 알아서 적당한 값을 부여해줍니다.
 
-보안에 좋지 않음, 테스트를 위해서만 사용할 것.
-not for production 
+이 타입의 서비스를 생성하면 모든 worker 노드들의 노드포트가 오픈되고, `{노드 ip}:{nodePort}`를 통해서 nodeport 서비스에 접근 가능합니다.
+
+보안에 좋지 않습니다, 오직 테스트를 위해서만 사용할 것을 권고하고 있습니다.
+not for production! 
 
 ### LoadBalancer
-nodeport 보다 나은 대안. 
-accessible externally through cloud providers loadbalancer
-  
-이 로드밸런서를 생성해서  거기를 통해서 external 트래픽을 받음. 
-GCP, AWS, Azure, linode, openstack 등등
+nodeport 서비스보다 나은 대안입니다. 
+cloud provider의 loadbalancer를 통해서 외부에서 접근가능 가능하도록 만듭니다.   
+(GCP, AWS, Azure, linode, openstack 등등)
 
-여기서 명시하는 nodeport는 worker node의 포트이긴 한데, 아무 클라이언트나 거기로 직접 접근 가능한게 아니라,  로드밸런서가.
-extension of clusterip type 
+외부 loadbalancer에서 트래픽이 전달되는 NodePort 서비스, ClusterIP는 쿠버네티스에 의해서 자동으로 생성됩니다. 이때의 노드포트는 NodePort 서비스의 경우처럼 아무나 접근 가능한게 아니라 오직 LoadBalancer만 접근 가능합니다.  
 
+[cloud provider 별 yaml spec](https://kubernetes.io/docs/concepts/services-networking/service/#internal-load-balancer)
+
+![external traffic production](../image/external_traffic.png)
+
+external 트래픽을 위한 production 환경구성은 보통 ingress나 loadbalancer 서비스를 사용한다고 합니다.
+
+#### 실습   
+[accessing apps](https://minikube.sigs.k8s.io/docs/handbook/accessing/)  
+[expose-external-ip-address](https://kubernetes.io/docs/tutorials/stateless-application/expose-external-ip-address/)
 
 원리
 ---
@@ -150,8 +157,9 @@ cat /etc/resolv.conf
 ```
 curl http://hello-world:8080
 ```
-![call_service](../image/call_service.png)
-해당 pod에서 서비스 url로 (ip address 대신 서비스의 DNS name) curl command 를 쳐도 당연하게도 정상적인 response를 받을 수도 있습니다.
+![call_service](../image/call_service.png)  
+
+해당 pod에서 서비스 url로 (ip address 대신 서비스의 DNS name) curl command 를 쳐도 당연하게도 정상적인 response를 받을 수 있습니다.
 
 ```
 apt update
@@ -186,7 +194,9 @@ kube-proxy 모드도 세가지 정도 (`user space`, `iptables`, `IPVS`)가 존�
 
 이런거라고 하는데, 솔직히 잘 모르겠습니다. 다음을 기약하며 넘어가도록 하죠.  
 
-위의 첫번째 packet flow 이미지에서 같은 각 pod를 위한 리눅스 네트워크 네임스페이스 생성, veth, bridge 설정 같은 low level 네트워크 작업은 `CNI` 가 담당해주는 것 같습니다.
+위의 첫번째 packet flow 이미지에서 같은 각 pod를 위한 리눅스 네트워크 네임스페이스 생성, veth, bridge 설정 같은 low level 네트워크 작업은 `CNI` 가 담당해주는 것 같습니다.  
+이때 pod는 각 워커노드의 virtual network bridge의 (그림상에서 dockerO 라고 표시된 것.컨테이너 런타임에 의해 관리되고, 노드 내 pod netns들과는 veth pair로 연결되어 있습니다.) IP range에 해당하는 cluster ip를 할당받습니다.   
+pod IP는 전 클러스터 내에서 unique 해야하므로 서로 다른 워커 노드간에 bridge들은 서로 겹치지 않는 address range를 사용해야 됩니다.
 
 아무튼 요약하자면, 각 워커노드의 kube-proxy가 서비스 변경사항을 지켜보고 있다가 그에 따라 리눅스 iptables를 업데이트 해두면, cluster 내부에서 packet이 destination으로 라우팅 되는 어떤 과정에서 netfilter hook에 걸려 `서비스 Virtual IP` -> `연결된 실제 pod IP` 로 패킷 destination이 수정된다는 것이 제가 이해한바 입니다.
 
@@ -202,7 +212,7 @@ kube-proxy 모드도 세가지 정도 (`user space`, `iptables`, `IPVS`)가 존�
 
 같은 네임스페이스면 네임스페이스 부분 생략 가능
 
-회사 코드에서 봤던 url 중에 `redis://redis:6379` 는 같은 네임스페이스에 있는 redis 라는 이름의 서비스의 주소였던 것입니다!
+회사 코드에서 봤던 url 중에 `redis://redis:6379` 는 같은 네임스페이스에 있는 redis 라는 이름의 서비스의 주소였던 것이네요.
 
 ```
 kubectl create namespace helloworld
@@ -214,15 +224,6 @@ kubectl port-forward deployment/proxy-app 3000:3000
 ![proxy-app-result](../image/proxy-app-result.png)
 
 
-
-#### service type 별로 생성해보기
-https://kubernetes.io/docs/tutorials/stateless-application/expose-external-ip-address/
-
-
-
-#### 원리 실습
-pod 안에서 nslookup
-https://kubernetes.io/docs/tasks/administer-cluster/dns-debugging-resolution/
 
 
 
